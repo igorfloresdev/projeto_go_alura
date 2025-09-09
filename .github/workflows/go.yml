@@ -1,0 +1,32 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Integração contínua
+
+# Sera executado, sempre que for feito um push para main ou pull_request para main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+# Conjunto de passos
+jobs:
+
+  ci:
+    runs-on: ubuntu-latest # Qual tipo de servidor o job será executado (etapa 1 baixou o codigo)
+    steps: #etapas do job
+    - uses: actions/checkout@v4 #Faz um gitclone e entra no projeto e garante o acesso a pasta
+
+    - name: Set up Go # Define a versão do go que será utilizado (etapa 2 instalou o go)
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+
+    - name: Inicia banco # etapa 3 inicia o banco de dados (servidores do github actions já vem com docker por padrão)
+      run: docker compose up -d postgres
+
+    - name: Lint # etapa 4 executa o lint
+      run: docker run --rm -it -v "$(CURDIR):/app" -w /app golangci/golangci-lint golangci-lint run controllers/ database/ models/ routes/
+
+    - name: Test # etapa 5 executa o teste
+      run: go test -v main_test.go
